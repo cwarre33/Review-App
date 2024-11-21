@@ -12,11 +12,14 @@ const feedbackBox = form.querySelector('#feedback');
 const submitBtn = form.querySelector('button');
 
 
+const selectElement = document.querySelector('#order'); // Match the select element by its ID
+
 window.addEventListener('DOMContentLoaded', fetchReviews);
 
+// Fetch reviews sorted by default (highest to lowest rating)
 async function fetchReviews() {
     try {
-        const response = await fetch(url);
+        const response = await fetch(`${url}?_sort=rating&_order=desc`); // Fetch sorted by descending order
         if (!response.ok) 
             throw new Error(`Error ${response.url} ${response.statusText}`);
         reviews = await response.json();
@@ -24,9 +27,23 @@ async function fetchReviews() {
         loadReviews();
     } catch (error) {
         console.error(error.message);
-        
     }
 }
+
+// Sort reviews dynamically based on the selected option
+function sortReviews() {
+    const sortOption = selectElement.value; // Get the current value of the select element
+    if (sortOption === 'ascending') {
+        reviews.sort((a, b) => a.rating - b.rating); // Ascending order
+    } else {
+        reviews.sort((a, b) => b.rating - a.rating); // Descending order
+    }
+    loadReviews(); // Reload reviews after sorting
+}
+
+// Event listener for sort selection changes
+selectElement.addEventListener('change', sortReviews);
+
 
 function loadStats() {
     let numberOfReviews = reviews.length;
@@ -102,7 +119,7 @@ function generateReview(review) {
 submitBtn.addEventListener('click', submitReview);
 
 async function submitReview(e) {
-    if (form.reportValidity()){
+    if (form.reportValidity()) {
         e.preventDefault();
         let rating = parseInt(ratingBox.value);
         let feedback = feedbackBox.value;
@@ -110,24 +127,22 @@ async function submitReview(e) {
         ratingBox.value = '';
         feedbackBox.value = '';
 
-        let review = {rating, feedback};
+        let review = { rating, feedback };
         review = JSON.stringify(review);
 
         try {
             const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: review
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: review,
             });
-            if (!response.ok) {
-            throw new Error(`Error ${response.url} ${response.statusText}`);
-            }
+            if (!response.ok) 
+                throw new Error(`Error ${response.url} ${response.statusText}`);
+            
             review = await response.json();
             reviews.push(review);
             loadStats();
-            loadReviews();
+            sortReviews(); // Sort after adding a new review
         } catch (error) {
             console.error(error.message);
         }
